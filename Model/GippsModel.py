@@ -34,14 +34,15 @@ class GippsModel():
 
 
 if __name__ == "__main__":
+  vl = 7
   model = GippsModel(10, 2, 3, 3, 0.1) # 
-  t, v, s, a = model.cal(6, 8, 8)
+  t, v, s, a = model.cal(6, 8, vl) # 
 
   print(t,v,s)
   plt.plot(t, v)
   plt.plot(t,a)
 #   plt.show()
   plt.plot(t, s)
-  plt.plot(t, [8 for i in range(len(t))])
+  plt.plot(t, [vl for i in range(len(t))])
   plt.legend(['v','a', 's','l_v'])
   plt.show()
