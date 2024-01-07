@@ -34,4 +34,4 @@ class LQR():
 
 
 
-if __name__ == 
+if 
