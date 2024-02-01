@@ -1,16 +1,9 @@
+import numpy as np
 
-import numpy as np 
-
-"""
-Vehicle Model:
-"""
 # Add lambda functions
 cos = lambda a : np.cos(a)
 sin = lambda a : np.sin(a)
 tan = lambda a : np.tan(a)
-
-args = {'wheelbase':2.94, 'steer_angle_limits': [-1.0, 1.0], 'acc_limits': [-5.5, 2.0],
-         'max_speed':30.0, 'timestep': 0.1, 'horizon': 40, 'num_states': 4, 'num_ctrls': 2}
 
 class Model:
     """
@@ -19,17 +12,16 @@ class Model:
     Control - [acc, yaw_rate]
     """
     def __init__(self, args):
-        self.wheelbase = args['wheelbase']
-        self.steer_min = args['steer_angle_limits'][0]
-        self.steer_max = args['steer_angle_limits'][1]
-        self.accel_min = args['acc_limits'][0]
-        self.accel_max = args['acc_limits'][1]
-        self.max_speed = args['max_speed']
-        self.Ts = args['timestep']
-        self.N = args['horizon']
+        self.wheelbase = args.wheelbase
+        self.steer_min = args.steer_angle_limits[0]
+        self.steer_max = args.steer_angle_limits[1]
+        self.accel_min = args.acc_limits[0]
+        self.accel_max = args.acc_limits[1]
+        self.max_speed = args.max_speed
+        self.Ts = args.timestep
+        self.N = args.horizon
         self.z = np.zeros((self.N))
         self.o = np.ones((self.N))
-        self.l  = 2.94
         
     def forward_simulate(self, state, control):
         """
@@ -43,7 +35,7 @@ class Model:
                                state[1] + sin(state[3])*(state[2]*self.Ts + (control[0]*self.Ts**2)/2),
                                np.clip(state[2] + control[0]*self.Ts, 0.0, self.max_speed),
                                state[3] + control[1]*self.Ts])  # wrap angles between 0 and 2*pi - Gave me error
-        return next_state  
+        return next_state
 
     def get_A_matrix(self, velocity_vals, theta, acceleration_vals):
         """
@@ -68,52 +60,3 @@ class Model:
                       [         self.Ts*self.o,         self.z],
                       [                 self.z, self.Ts*self.o]])
         return B
-    
-    def LQRA(self,V,phi):
-        A = np.array([[0,0,-V*np.sin(phi)],[0,0,V*np.cos(phi)],[0,0,0]]) 
-        return A 
-    
-    def LQRB(self,V,phi):
-        B = np.array([[np.cos(phi),0],[np.sin(phi),0],[np.tan(phi) / self.l, V / (self.l * np.cos(phi) ** 2)]])
-        return B 
-
-"""
-LQR 算法 实现：
-
-METHOD ONE: Ricate Recursion
-"""
-
-class LQR():
-    def __init__(self,A,B,Q,R) -> None:
-        self.epision = 1e-6
-        self.A = A
-        self.B = B
-        self.Q = Q
-        self.R = R
-        self.P = np.eye(4)
-        self.K = np.zeros((2,4))
-
-
-    def get_K(self):
-        return self.R + (self.B.T @ self.P @ self.B).I @ self.B.T @ self.P @ self.A
-    
-    def get_P(self):
-        while True:
-            P_next = self.Q + self.A.T @ self.P @ self.A - self.A.T @ self.P @ self.B @ (self.R + self.B.T @ self.P @ self.B).I @ self.B.T @ self.P @ self.A
-            if np.linalg.norm(P_next - self.P) < self.epision:
-                break
-            self.P = P_next
-
-    def get_control(self, state):
-        self.P = np.eye(4)
-        self.get_P()
-        self.K = self.get_K()
-        return -self.K @ state
-
-
-if __name__ == "__main__":
-    # state = np.array([0, 0, 0])
-    # lqr = LQR(state)
-    # control = lqr.get_control(state)
-    # print(control)
-    print(np.zeros((10)))

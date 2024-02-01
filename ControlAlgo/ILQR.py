@@ -1,24 +1,18 @@
-
-import numpy as np 
-
 """
-Vehicle Model:
+ILQR:
+
+非线性代价函数、 非线性系统状态方程。
 """
-# Add lambda functions
 cos = lambda a : np.cos(a)
 sin = lambda a : np.sin(a)
 tan = lambda a : np.tan(a)
 
+import numpy as np 
 args = {'wheelbase':2.94, 'steer_angle_limits': [-1.0, 1.0], 'acc_limits': [-5.5, 2.0],
          'max_speed':30.0, 'timestep': 0.1, 'horizon': 40, 'num_states': 4, 'num_ctrls': 2}
 
-class Model:
-    """
-    A vehicle model with 4 dof. 
-    State - [x, y, vel, theta]
-    Control - [acc, yaw_rate]
-    """
-    def __init__(self, args):
+class Model():
+    def __init__(self,args) -> None:
         self.wheelbase = args['wheelbase']
         self.steer_min = args['steer_angle_limits'][0]
         self.steer_max = args['steer_angle_limits'][1]
@@ -30,22 +24,19 @@ class Model:
         self.z = np.zeros((self.N))
         self.o = np.ones((self.N))
         self.l  = 2.94
-        
-    def forward_simulate(self, state, control):
-        """
-        Find the next state of the vehicle given the current state and control input
-        """
-        # Clips the controller values between min and max accel and steer values
+
+    def front_simulate(self,state,control):
         control[0] = np.clip(control[0], self.accel_min, self.accel_max)
         control[1] = np.clip(control[1], state[2]*tan(self.steer_min)/self.wheelbase, state[2]*tan(self.steer_max)/self.wheelbase)
-        
         next_state = np.array([state[0] + cos(state[3])*(state[2]*self.Ts + (control[0]*self.Ts**2)/2),
                                state[1] + sin(state[3])*(state[2]*self.Ts + (control[0]*self.Ts**2)/2),
                                np.clip(state[2] + control[0]*self.Ts, 0.0, self.max_speed),
-                               state[3] + control[1]*self.Ts])  # wrap angles between 0 and 2*pi - Gave me error
-        return next_state  
+                               state[3] + control[1]*self.Ts])
 
-    def get_A_matrix(self, velocity_vals, theta, acceleration_vals):
+    """
+        N * 1   每个节点的状态。
+    """
+    def get_A_matrix(self, velocity_vals:np.ndarray, theta:np.ndarray, acceleration_vals:np.ndarray):
         """
         Returns the linearized 'A' matrix of the ego vehicle 
         model for all states in backward pass. 
@@ -68,52 +59,3 @@ class Model:
                       [         self.Ts*self.o,         self.z],
                       [                 self.z, self.Ts*self.o]])
         return B
-    
-    def LQRA(self,V,phi):
-        A = np.array([[0,0,-V*np.sin(phi)],[0,0,V*np.cos(phi)],[0,0,0]]) 
-        return A 
-    
-    def LQRB(self,V,phi):
-        B = np.array([[np.cos(phi),0],[np.sin(phi),0],[np.tan(phi) / self.l, V / (self.l * np.cos(phi) ** 2)]])
-        return B 
-
-"""
-LQR 算法 实现：
-
-METHOD ONE: Ricate Recursion
-"""
-
-class LQR():
-    def __init__(self,A,B,Q,R) -> None:
-        self.epision = 1e-6
-        self.A = A
-        self.B = B
-        self.Q = Q
-        self.R = R
-        self.P = np.eye(4)
-        self.K = np.zeros((2,4))
-
-
-    def get_K(self):
-        return self.R + (self.B.T @ self.P @ self.B).I @ self.B.T @ self.P @ self.A
-    
-    def get_P(self):
-        while True:
-            P_next = self.Q + self.A.T @ self.P @ self.A - self.A.T @ self.P @ self.B @ (self.R + self.B.T @ self.P @ self.B).I @ self.B.T @ self.P @ self.A
-            if np.linalg.norm(P_next - self.P) < self.epision:
-                break
-            self.P = P_next
-
-    def get_control(self, state):
-        self.P = np.eye(4)
-        self.get_P()
-        self.K = self.get_K()
-        return -self.K @ state
-
-
-if __name__ == "__main__":
-    # state = np.array([0, 0, 0])
-    # lqr = LQR(state)
-    # control = lqr.get_control(state)
-    # print(control)
-    print(np.zeros((10)))
