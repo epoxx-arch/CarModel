@@ -1,14 +1,11 @@
 """
 车辆运动学状态方程: 连续 和离散实现 
 x_dot = A * x + B * u
-
-
 x_k+1 = A * x_k + B * u_k
-
 """
 
 import numpy as np 
-
+import random
 cos = np.cos 
 sin = np.sin 
 tan = np.tan 
@@ -18,11 +15,29 @@ tan = np.tan
 """
 Vehicle Model:
 x = [x,y,theta]
-u = [v, w]
+u = [v, sigma]
+
+x = v cos(theta)
+y = v sin(theta)
+theta = v tan(sigma) / l 
+
+X = [x_dot y_dot theta_dot] = [
+        [0 0 -vsin(theta)]
+        [0 0 vcos(theta)]
+        [0 0 0]
+  ]
+
+U = [
+    [cos(theta) 0 ]
+    [sin(theta) 0 ]
+    [tan(sigma)/l v/l/(cos(sigma)**2)]
+]
 """
 class KinematicsContinueModel:
     def __init__(self) -> None:
         self.l = 2.5
+
+    
 
     def get_A(self,state,control):
         return np.array(
@@ -56,6 +71,18 @@ U : [v,w]
 
 state: 3 * n 
 control: 2 * n 
+
+X_dot = (X(k+1) - x(k))/T = AX + BU 
+
+X(k+1) = (AT + I)X + BTU
+
+A = AT + I = [
+    [1 0 -v * sin(theta) * ts]
+    [0 1 v*cos(theta)*ts]
+    [0 0  1]
+    ]
+
+B = BTU 
 """
 class KinematicsDiscreteModel:
     def __init__(self) -> None:
@@ -75,9 +102,20 @@ class KinematicsDiscreteModel:
                 [self.z, self.z, self.o]
             ]
         )
+        return A 
 
     
     # B : 3 * 2 * N  
     def get_B(self,state,control):
-        B = 
+        B = [
+            [cos(state[2])*self.Ts,0],
+            [sin(state[2] * self.Ts, 0)],
+            [control[0] / self.l / cos(state[2])**2]
+        ]
+        return B 
 
+
+if __name__ == "__main__":
+    init_state = [0,0,0]
+    control_seril = [[i, 3 + random.random()] for i in range(100)]
+    model = KinematicsContinueModel()
