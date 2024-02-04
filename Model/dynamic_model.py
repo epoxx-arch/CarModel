@@ -48,12 +48,12 @@ class KinematicsContinueModel:
         self.l = 2.5
         self.ts = 0.1
 
-    def forward_simulate(self, state, control):
-        A = self.get_A(state, control)
+    def forward_simulate(self, state,ref_state,ref_stat2,ref_control, control):
+        A = self.get_A(ref_state, ref_control)
         NEW_A = A * self.ts + np.eye(3) 
-        NEW_B = self.get_B(state, control) * self.ts
+        NEW_B = self.get_B(ref_state, control) * self.ts
         print(NEW_A,NEW_B)
-        X_k1 = NEW_A @ state + NEW_B @ control
+        X_k1 = NEW_A @ (np.array(state) - np.array(ref_state)) + NEW_B @ (np.array(control) - np.array(ref_control)) + ref_stat2
         # X_k1[2] = normial(X_k1[2])
         return X_k1
 
@@ -78,7 +78,7 @@ class KinematicsContinueModel:
             [
                 [cos(state[2]),0],
                 [sin(state[2]),0],
-                [tan(control[1])/self.l, control[0] / (self.l * cos(control[1]) ** 2)]
+                [tan(state[2])/self.l, control[0] / (self.l * cos(control[1]) ** 2)]
             ]
         )
     
@@ -155,7 +155,7 @@ class KinematicsDiscreteModel:
 
 def draw(state_s,state_2):
     sign = 0
-    for st in [state_s,state_2]:
+    for st in [state_2]:
         sign += 1
         st = np.array(st)
         index  = [i  for i in range(len(st))]
@@ -164,6 +164,8 @@ def draw(state_s,state_2):
         # plt.plot(index,st[:,1],label = "y" + str(sign))
         # plt.plot(index,st[:,2],label = "theta" + str(sign))
         plt.plot(st[:,0],st[:,1],label = "pos" + str(sign))
+    #plt.xlim([0,30])
+    #plt.ylim([0,30])
     plt.legend()
     plt.show()
 
@@ -175,17 +177,16 @@ if __name__ == "__main__":
 
     print("init_s",init_state)
     ans = [init_state]
+    ans2 =[init_state]
     state = list(init_state)
-    for con in control_seril:
-        state = model_continue.forward_simulate(state,con)
-        ans.append(list(state))
-    print(len(ans))
-    print("init_2",init_state)
-    ans2 = [init_state]
     state2 = list(init_state)
     for con in control_seril:
+        new_state = list(state2) 
         state2 = model_continue.forward_simulate2(state2,con)
-        ans2.append(state2)
+        state = model_continue.forward_simulate(state,new_state ,state2,con,con)
+        ans2.append(list(state2))
+        ans.append(list(state))
+
     draw(ans,ans2)
     
     # model_discreate  = KinematicsDiscreteModel()
