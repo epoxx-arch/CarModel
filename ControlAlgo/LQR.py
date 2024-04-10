@@ -112,8 +112,8 @@ class LQR():
 
 
 if __name__ == "__main__":
-    # state = np.array([0, 0, 0])
-    # lqr = LQR(state)
-    # control = lqr.get_control(state)
-    # print(control)
+    state = np.array([0, 0, 0])
+    lqr = LQR(state)
+    control = lqr.get_control(state)
+    print(control)
     print(np.zeros((10)))
