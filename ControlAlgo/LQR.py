@@ -1,4 +1,5 @@
 
+import random
 import numpy as np 
 
 """
@@ -110,10 +111,36 @@ class LQR():
         self.K = self.get_K()
         return -self.K @ state
 
+def generate_circle_traj_point():
+    """
+    Generate a circle trajectory for the ego vehicle to follow
+    """
+    radius = 10.0
+    center = np.array([0, 0])
+    theta = np.linspace(0, 2*np.pi, 100)
+    x = center[0] + radius*np.cos(theta)
+    y = center[1] + radius*np.sin(theta)
+    a = [(random.random()) - 1.0 for _ in range(len(x))]
+    return x, y,a
+
+
 
 if __name__ == "__main__":
     state = np.array([0, 0, 0])
-    lqr = LQR(state)
-    control = lqr.get_control(state)
-    print(control)
-    print(np.zeros((10)))
+
+    x,y,a = generate_circle_traj_point()
+    model = Model(args)
+    plot_state = []
+    plot_track_s = []
+    for _x,_y,_a in zip(x,y,a):
+        state = np.array([_x, _y,_a,0.0])
+        plot_state.append([x,y])
+        lqr = LQR(state)
+        control = lqr.get_control(state)
+        new_x,new_y = model.forward_simulate(state, control)
+        plot_track_s.append([new_x,new_y])
+    
+    import matplotlib.pyplot as plt
+    plt.plot([i[0] for i in plot_state], [i[1] for i in plot_state])
+    plt.plot([i[0] for i in  plot_track_s], [i[1] for i in plot_track_s])
+    plt.show()
